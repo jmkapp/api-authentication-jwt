@@ -7,5 +7,6 @@ namespace AuthenticationApi.Repositories
         Task<User> Get(string userName);
         Task<bool> Add(User newUser);
         Task<bool> Delete(string userName);
+        Task UpdatePermissions(string userName, List<Permission> permissions);
     }
 }

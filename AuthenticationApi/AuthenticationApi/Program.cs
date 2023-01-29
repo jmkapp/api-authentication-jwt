@@ -1,6 +1,9 @@
 using AuthenticationApi.Database;
 using AuthenticationApi.Repositories;
 using AuthenticationApi.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace AuthenticationApi
 {
@@ -17,9 +20,31 @@ namespace AuthenticationApi
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            builder.Services.AddScoped<IDatabaseClient, DynamoDbClient>();
+            builder.Services.AddSingleton<IDatabaseClient, DynamoDbClient>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+            builder.Services.AddAuthentication(auth =>
+            {
+                auth.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                auth.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                auth.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+                {
+                    options.SaveToken = true;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = false,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidateAudience = false,
+                        ValidAudience = builder.Configuration["Jwt:Audience"],
+                        ValidateLifetime = false,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey =
+                            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+                    };
+                }
+            );
 
             var app = builder.Build();
 
@@ -32,9 +57,8 @@ namespace AuthenticationApi
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
-
-            app.UseMiddleware<AuthenticateMiddleware>();
 
             app.MapControllers();
 
