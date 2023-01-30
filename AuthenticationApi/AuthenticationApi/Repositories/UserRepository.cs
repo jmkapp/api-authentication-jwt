@@ -55,7 +55,8 @@ namespace AuthenticationApi.Repositories
                 Item = new Dictionary<string, AttributeValue>
                 {
                     { "UserName", new AttributeValue { S = newUser.UserName } },
-                    { "Password", new AttributeValue { S = newUser.PasswordHash } }
+                    { "Password", new AttributeValue { S = newUser.PasswordHash } },
+                    { "Permissions", new AttributeValue { NS = newUser.Permissions.Select(p => (int)p).Select(p => p.ToString()).ToList() } }
                 },
                 ConditionExpression = "attribute_not_exists(UserName)"
             };

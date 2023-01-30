@@ -26,6 +26,7 @@ namespace AuthenticationApi.Services
             };
 
             newUser.PasswordHash = new PasswordHasher<User>().HashPassword(newUser, password);
+            newUser.Permissions = new List<Permission> { Permission.GetUser };
 
             return await _userRepository.Add(newUser);
         }
