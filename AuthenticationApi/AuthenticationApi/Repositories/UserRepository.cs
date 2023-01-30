@@ -34,11 +34,17 @@ namespace AuthenticationApi.Repositories
                 return new User()
                 {
                     UserName = fields["UserName"].S,
-                    PasswordHash = fields["Password"].S
+                    PasswordHash = fields["Password"].S,
+                    Permissions = ParsePermissions(fields["Permissions"].NS)
                 };
             }
 
             return new User();
+        }
+
+        private List<Permission> ParsePermissions(List<string> permissionValues)
+        {
+            return permissionValues.Select(permissionValue => (Permission)Convert.ToInt32(permissionValue)).ToList();
         }
 
         public async Task<bool> Add(User newUser)
@@ -49,7 +55,8 @@ namespace AuthenticationApi.Repositories
                 Item = new Dictionary<string, AttributeValue>
                 {
                     { "UserName", new AttributeValue { S = newUser.UserName } },
-                    { "Password", new AttributeValue { S = newUser.PasswordHash } }
+                    { "Password", new AttributeValue { S = newUser.PasswordHash } },
+                    { "Permissions", new AttributeValue { NS = newUser.Permissions.Select(p => (int)p).Select(p => p.ToString()).ToList() } }
                 },
                 ConditionExpression = "attribute_not_exists(UserName)"
             };
@@ -88,6 +95,31 @@ namespace AuthenticationApi.Repositories
             }
 
             return true;
+        }
+
+        public async Task UpdatePermissions(string userName, List<Permission> permissions)
+        {
+            List<string> permissionValues = permissions.Select(p => (int)p).Select(p => p.ToString()).ToList();
+
+            UpdateItemRequest request = new UpdateItemRequest
+            {
+                TableName = _tableName,
+                Key = new Dictionary<string, AttributeValue>
+                {
+                    { "UserName", new AttributeValue { S = userName } }
+                },
+                ExpressionAttributeNames = new Dictionary<string, string>()
+                {
+                    { "#P", "Permissions" }
+                },
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue>()
+                {
+                    { ":perm", new AttributeValue { NS = permissionValues } }
+                },
+                UpdateExpression = "SET #P = :perm"
+            };
+
+           UpdateItemResponse? response =  await _databaseClient.UpdateItemAsync(request);
         }
     }
 }

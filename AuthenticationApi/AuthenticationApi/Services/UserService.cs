@@ -26,6 +26,7 @@ namespace AuthenticationApi.Services
             };
 
             newUser.PasswordHash = new PasswordHasher<User>().HashPassword(newUser, password);
+            newUser.Permissions = new List<Permission> { Permission.GetUser };
 
             return await _userRepository.Add(newUser);
         }
@@ -35,13 +36,16 @@ namespace AuthenticationApi.Services
             return await _userRepository.Delete(userName);
         }
 
-        public async Task<bool> VerifyPassword(string userName, string password)
+        public async Task<bool> VerifyPassword(User user, string password)
         {
-            User user = await Get(userName);
-
             PasswordVerificationResult verifiedResult = new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, password);
 
             return verifiedResult == PasswordVerificationResult.Success;
+        }
+
+        public async Task UpdatePermissions(string userName, List<Permission> permissions)
+        {
+            await _userRepository.UpdatePermissions(userName, permissions);
         }
     }
 }
